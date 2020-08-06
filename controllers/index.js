@@ -630,8 +630,51 @@ static check_out (req, res) {
 
 }
 
-// static get_class_list (req, res) {}
-// static get_class_by_id (req, res) {}
+static get_class_list (req, res) {
+
+}
+
+static get_class_by_id (req, res) {
+  let role = req.currentUserRole
+  let {ClassId} = req.body
+  let available_seats = []
+  let occupied_seats = []
+  ClassSeat.findAll({
+      where: {
+        ClassId
+      },
+      include: [User, Class]
+    })
+      .then(data => {
+        for(let i = 0; i < data.length; i++) {
+          if(!data[i].student_name) {
+            available_seats.push(data[i].seat)
+          } else {
+            occupied_seats.push({
+              seat: data[i].seat,
+              student_name: data[i].student_name
+            })
+          }
+        }
+        available_seats.sort()
+        return Class.findByPk(+ClassId)
+      })
+      .then(data => {
+        res.status(200).json({
+          class_id: data.id,
+          rows: data.rows,
+          columns: data.columns,
+          teacher: data.teacher,
+          available_seats,
+          occupied_seats
+        })
+      })
+      .catch(err => {
+        res.status(500).json({
+          err
+        })
+      })
+}
 }
 
 module.exports = Controller
