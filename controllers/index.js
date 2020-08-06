@@ -631,7 +631,57 @@ static check_out (req, res) {
 }
 
 static get_class_list (req, res) {
-
+  Class.findAll({
+    attributes: {
+        exclude: ['createdAt', 'updatedAt']
+    },
+    include: [{
+      model: ClassSeat,
+      attributes: {
+        exclude: ['createdAt', 'updatedAt']
+      },
+      include: [{
+        model: User,
+        attributes: {
+          exclude: ['password', 'createdAt', 'updatedAt']
+        }
+      }]
+    }]
+  })
+    .then(data => {
+      let output = []
+      for(let i = 0; i < data.length; i++) {
+        let available_seats = []
+        let occupied_seats = []
+        for(let j = 0; j < data[i].ClassSeats.length; j++) {
+          if(!data[i].ClassSeats[j].student_name) {
+            available_seats.push(data[i].ClassSeats[j].seat)
+          } else {
+            occupied_seats.push({
+              seat: data[i].ClassSeats[j].seat,
+              student_name: data[i].ClassSeats[j].student_name
+            })
+          }
+        }
+        available_seats.sort()
+        output.push({
+          class_id: data[i].id,
+          rows: data[i].rows,
+          columns: data[i].columns,
+          teacher: data[i].teacher,
+          available_seats,
+          occupied_seats,
+        })
+      }
+      res.status(200).json({
+        data: output
+      })
+    })
+    .catch(err => {
+      res.status(500).json({
+        err
+      })
+    })
 }
 
 static get_class_by_id (req, res) {
