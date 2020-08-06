@@ -154,6 +154,7 @@ static check_in (req, res) {
             })
           }
         }
+        available_seats.sort()
         return Class.findByPk(+ClassId)
       })
       .then(data => {
@@ -189,6 +190,7 @@ static check_in (req, res) {
             })
           }
         }
+        available_seats.sort()
         return Class.findByPk(+ClassId)
       })
       .then(data => {
@@ -223,7 +225,7 @@ static check_in (req, res) {
           teacher: data.teacher,
           available_seats,
           occupied_seats,
-          message: 'Check in success!'
+          message: 'Teacher check in success!'
         })
       })
       .catch(err => {
@@ -252,6 +254,7 @@ static check_in (req, res) {
             })
           }
         }
+        available_seats.sort()
         if(available_seats.length === 0) {
           message = `Hi ${name}, the class is fully seated`
           ClassSeat.findAll({
@@ -273,6 +276,7 @@ static check_in (req, res) {
                 })
               }
             }
+            available_seats.sort()
             return Class.findByPk(+ClassId)
           })
           .then(data => {
@@ -320,6 +324,7 @@ static check_in (req, res) {
                   })
                 }
               }
+              available_seats.sort()
               return Class.findByPk(+ClassId)
             })
             .then(data => {
@@ -374,6 +379,7 @@ static check_in (req, res) {
             })
           }
         }
+        available_seats.sort()
         return Class.findByPk(+ClassId)
       })
       .then(data => {
@@ -395,10 +401,237 @@ static check_in (req, res) {
   }
 }
 
-static check_out (req, res) {}
-static get_class_list (req, res) {}
-static get_class_by_id (req, res) {}
+static check_out (req, res) {
+  let role = req.currentUserRole
+  let {ClassId, UserId} = req.body
+  let available_seats = []
+  let occupied_seats = []
+  if(role == 'admin') {
+    ClassSeat.findAll({
+      where: {
+        ClassId
+      },
+      include: [User, Class]
+    })
+      .then(data => {
+        for(let i = 0; i < data.length; i++) {
+          if(!data[i].student_name) {
+            available_seats.push(data[i].seat)
+          } else {
+            occupied_seats.push({
+              seat: data[i].seat,
+              student_name: data[i].student_name
+            })
+          }
+        }
+        available_seats.sort()
+        return Class.findByPk(+ClassId)
+      })
+      .then(data => {
+        res.status(200).json({
+          class_id: data.id,
+          rows: data.rows,
+          columns: data.columns,
+          teacher: data.teacher,
+          available_seats,
+          occupied_seats
+        })
+      })
+      .catch(err => {
+        res.status(500).json({
+          err
+        })
+      })
+  } else if (role == 'teacher') {
+    ClassSeat.findAll({
+      where: {
+        ClassId
+      },
+      include: [User, Class]
+    })
+      .then(data => {
+        for(let i = 0; i < data.length; i++) {
+          if(!data[i].student_name) {
+            available_seats.push(data[i].seat)
+          } else {
+            occupied_seats.push({
+              seat: data[i].seat,
+              student_name: data[i].student_name
+            })
+          }
+        }
+        available_seats.sort()
+        return Class.findByPk(+ClassId)
+      })
+      .then(data => {
+        if(data.teacher == 'out') {
+          res.status(400).json({
+            class_id: data.id,
+            rows: data.rows,
+            columns: data.columns,
+            teacher: data.teacher,
+            available_seats,
+            occupied_seats,
+            message: 'class is already have no teacher'
+          })
+        } else {
+          return Class.update({
+            teacher: 'out'
+          },{
+            where: {
+              id: ClassId
+            }
+          })
+        }
+      })
+      .then(response => {
+        return Class.findByPk(+ClassId)
+      })
+      .then(data => {
+        res.status(200).json({
+          class_id: data.id,
+          rows: data.rows,
+          columns: data.columns,
+          teacher: data.teacher,
+          available_seats,
+          occupied_seats,
+          message: 'Teacher check out success!'
+        })
+      })
+      .catch(err => {
+        res.status(500).json({
+          err
+        })
+      })
+  } else if (role == 'student') {
+    let message = ''
+    let name = req.currentUserName
+    let seat = ''
+    ClassSeat.findAll({
+      where: {
+        ClassId
+      },
+      include: [User, Class]
+    })
+      .then(data => {
+        for(let i = 0; i < data.length; i++) {
+          if(!data[i].student_name) {
+            available_seats.push(data[i].seat)
+          } else {
+            occupied_seats.push({
+              seat: data[i].seat,
+              student_name: data[i].student_name
+            })
+          }
+        }
+        available_seats.sort()
+        let isCheckIn = false
+        for(let j = 0; j < occupied_seats.length; j++) {
+          if (occupied_seats[j].student_name == name) {
+            isCheckIn = true
+            seat = occupied_seats[j].seat
+            break;
+          }
+        }
+        if(!isCheckIn) {
+          message = `Hi ${name}, you are not in this class`
+          ClassSeat.findAll({
+            where: {
+              ClassId
+            },
+            include: [User, Class]
+          })
+          .then(data => {
+            available_seats = []
+            occupied_seats = []
+            for(let i = 0; i < data.length; i++) {
+              if(!data[i].student_name) {
+                available_seats.push(data[i].seat)
+              } else {
+                occupied_seats.push({
+                  seat: data[i].seat,
+                  student_name: data[i].student_name
+                })
+              }
+            }
+            available_seats.sort()
+            return Class.findByPk(+ClassId)
+          })
+          .then(data => {
+            res.status(200).json({
+              class_id: data.id,
+              rows: data.rows,
+              columns: data.columns,
+              teacher: data.teacher,
+              available_seats,
+              occupied_seats,
+              message
+            })
+          })
+          .catch(err => {
+            res.status(500).json({
+              err
+            })
+          })
+        } else {
+          message = `Hi ${name}, seat ${seat} is now available for other students`
+          return ClassSeat.update({
+            student_name: "",
+            UserId: null
+          }, {
+            where: {
+              ClassId,
+              seat
+            }
+          })
+        }
+      })
+      .then(response => {
+        return ClassSeat.findAll({
+          where: {
+            ClassId
+          },
+          include: [User, Class]
+        })
+      })
+      .then(data => {
+        available_seats = []
+        occupied_seats = []
+        for(let i = 0; i < data.length; i++) {
+          if(!data[i].student_name) {
+            available_seats.push(data[i].seat)
+          } else {
+            occupied_seats.push({
+              seat: data[i].seat,
+              student_name: data[i].student_name
+            })
+          }
+        }
+        available_seats.sort()
+        return Class.findByPk(+ClassId)
+      })
+      .then(data => {
+        res.status(200).json({
+          class_id: data.id,
+          rows: data.rows,
+          columns: data.columns,
+          teacher: data.teacher,
+          available_seats,
+          occupied_seats,
+          message
+        })
+      })
+      .catch(err => {
+        res.status(500).json({
+          err
+        })
+      })
+  }
 
+}
+
+// static get_class_list (req, res) {}
+// static get_class_by_id (req, res) {}
 }
 
 module.exports = Controller
