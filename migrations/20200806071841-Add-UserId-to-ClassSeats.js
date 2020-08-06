@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
@@ -12,10 +12,10 @@ module.exports = {
       type: Sequelize.INTEGER,
       references: {
         model: "Users",
-        key: "id"
+        key: "id",
       },
       onUpdate: "cascade",
-      onDelete: "cascade"
+      onDelete: "cascade",
     });
   },
 
@@ -27,5 +27,5 @@ module.exports = {
      * await queryInterface.dropTable('users');
      */
     await queryInterface.removeColumn("ClassSeats", "UserId");
-  }
+  },
 };
