@@ -5,24 +5,28 @@ function authentication (req, res, next) {
     let token = req.headers.token
     try {
         let decoded = verifyToken(token)
-        let { id } = decoded
+        let { id, role } = decoded
         User.findByPk(id)
             .then(data => {
                 if(data) {
                     req.currentUserId = id
+                    req.currentUserRole = role
                     next()
                 } else {
-                    throw {
-                        msg: 'Please login first',
-                        code: 401
-                    }
+                    res.status(401).json({
+                        message: 'Please login first',
+                    })
                 }
             })
             .catch(err => {
-                throw err
+                res.status(500).json({
+                    err
+                })
             })
     } catch (err) {
-        next(err)
+        res.status(500).json({
+            err
+        })
     }
 }
 

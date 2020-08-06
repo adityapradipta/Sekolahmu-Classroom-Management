@@ -1,30 +1,30 @@
-const { Cart } = require('../models')
+const { User } = require('../models')
 
-function authorization (req, res, next) {
-    let { CartId } = req.params
-    Cart.findByPk(CartId)
+function adminAuthorization (req, res, next) {
+    User.findByPk(req.currentUserId)
         .then(data => {
             if(data) {
-                console.log(data)
-                console.log(req.currentUserId)
-                if(data.CustomerId == req.currentUserId) {
+                if(data.role === 'admin') {
                     next()
                 } else {
-                    throw {
-                        msg: 'Unauthorized',
-                        code: 401
-                    }
+                    res.status(401).json({
+                        message: 'unauthorized'
+                    })
                 }
             } else {
-                throw {
-                    msg: 'Cart not found',
-                    code: 404
-                }
+                res.status(404).json({
+                    message: 'User not found'
+                })
             }
         })
         .catch(err => {
-            next(err)
+            res.status(500).json({
+                err
+            })
         })
 }
 
-module.exports = authorization
+
+module.exports = {
+    adminAuthorization
+}

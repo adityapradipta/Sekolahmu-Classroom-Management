@@ -22,5 +22,8 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'User',
   });
+  User.associate = function(models) {
+    User.hasMany(models.ClassSeat, { foreignKey: "UserId", targetKey: "id" })
+  };
   return User;
 };

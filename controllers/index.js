@@ -1,4 +1,4 @@
-const { User, Class } = require('../models/index')
+const { User, Class, ClassSeat } = require('../models/index')
 const { comparePassword } = require('../helpers/bcrypt')
 const { generateToken } = require('../helpers/jwt')
 
@@ -49,7 +49,48 @@ static login (req, res) {
       })
 }
 
-static create_class (req, res) {}
+static create_class (req, res) {
+  const {rows, columns} = req.body
+  if(rows <= 0 || columns <= 0 || columns > 26 ) {
+    res.status(400).json({
+      message: 'rows and columns must be more than zero and maximum value of columns is 26'
+    })
+  } else {
+    let alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    Class.create({
+      rows,
+      columns,
+      teachers: 'out'
+    })
+      .then(response => {
+        let seats = []
+        let ClassId = response.id
+        for(let i = 1; i <= rows; i++) {
+          for(let j = 1; j <= columns; j++) {
+            seats.push({
+              seat: `${i}${alphabet[j-1]}`,
+              student_name: '',
+              ClassId,
+              UserId: null
+            })
+          }
+        }
+        return ClassSeat.bulkCreate(seats)
+      })
+      .then(response => {
+        res.status(201).json({
+          message: 'Class created'
+        })
+      })
+      .catch(err => {
+        res.status(500).json({
+          err
+        })
+      })
+  }
+  
+}
+
 static check_in (req, res) {}
 static check_out (req, res) {}
 static get_class_list (req, res) {}
